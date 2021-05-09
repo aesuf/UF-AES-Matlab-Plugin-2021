@@ -19,10 +19,17 @@ switch type
         wet(:,2) = in_gain*in(:,2) - BP*dist_gain*(1/3)*in(:,2).^3;
     case "arctan"
         %arctan distortion
+        wet(:,1) = (2/pi)*atan(in(:,1).*dist_gain); 
+        wet(:,2) = (2/pi)*atan(in(:,2).*dist_gain);
     case "tanh"
         %tanh distortion
+        wet(:,1) = tanh(in(:,1).*dist_gain); 
+        wet(:,2) = tanh(in(:,2).*dist_gain);
     case "sinh"
         %sinh distortion
+        %sinh has no y limit, what do I scale it by? 
+        wet(:,1) = sinh(in(:,1).*dist_gain); 
+        wet(:,2) = sinh(in(:,2).*dist_gain);
     otherwise
         %Default to cubic distortion
         wet(:,1) = in_gain*in(:,1) - BP*dist_gain*(1/3)*in(:,1).^3;
