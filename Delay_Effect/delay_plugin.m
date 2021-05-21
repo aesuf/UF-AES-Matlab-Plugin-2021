@@ -89,7 +89,7 @@ classdef delay_plugin < audioPlugin
             case "basic"
                 %Basic delay implementation, based on https://www.mathworks.com/help/audio/gs/audio-plugins-in-matlab.html
                 %Left Channel
-                writeIndex = plugin.L_Index+1;
+                writeIndex = plugin.L_Index;%writeIndex = plugin.L_Index+1;
                 readIndex = writeIndex-L_Delay_Samp;
                 
                 if(readIndex <= 0) %Handle underflow of circular buffer
@@ -115,7 +115,7 @@ classdef delay_plugin < audioPlugin
                 end
                 plugin.L_Index = writeIndex;
                 %Right Channel
-                writeIndex = plugin.R_Index+1;
+                writeIndex = plugin.R_Index;%writeIndex = plugin.R_Index+1;
                 readIndex = writeIndex-R_Delay_Samp;
                 
                 if(readIndex <= 0) %Handle underflow of circular buffer
