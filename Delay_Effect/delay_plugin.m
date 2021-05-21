@@ -7,19 +7,29 @@ classdef delay_plugin < audioPlugin
     type = 'basic'
     L_Gain = 1
     R_Gain = 1
-    L_Delay = 200
-    R_Delay = 200
+    time_L = '1/4'
+    time_R = '1/4'
     L_Feedback = 0
-    R_Feedback = 0
+    R_Feedback = 0 
+    Tempo = 100
   end
   
+  %-----------------------------------------------------------------------
+  % Private Properties - Internal properties
+  %-----------------------------------------------------------------------
   properties (Access = private)
+      L_delay_ms = 600;
+      R_delay_ms = 600;
       Buffer = zeros(192001,2) %Allows up to 4 seconds of delay at 48kHz
       Out_Buffer = zeros(192001,2) 
-      L_Index = 0;
-      R_Index = 0;
+      L_Index = 1;
+      R_Index = 1;
+      
   end
   
+  %-----------------------------------------------------------------------
+  % Constant Properties - Interface properties
+  %-----------------------------------------------------------------------
   properties (Constant, Hidden)
     PluginInterface = audioPluginInterface( ...
     audioPluginParameter( ...
@@ -43,15 +53,17 @@ classdef delay_plugin < audioPlugin
         'DisplayName', 'Right Gain (dB)', ...
         'Style','rotary', ...
         'Layout',[3,2]), ...
-    audioPluginParameter( ...
-        'L_Delay','Mapping',{'int', 0, 4000}, ...
-        'DisplayName', 'Left Delay (ms)', ...
-        'Style','hslider', ...
+    audioPluginParameter('time_L', ...
+        'Mapping',{'enum', '1/16T', '1/16D', '1/16', ...
+        '1/8T', '1/8D', '1/8', '1/4T', '1/4D', '1/4', ...
+        '1/2T', '1/2D', '1/2', '1/1'}, ...
+        'DisplayName', 'Left Delay ', ...
         'Layout',[5,1]), ...
-    audioPluginParameter( ...
-        'R_Delay','Mapping',{'int', 0, 4000}, ...
-        'DisplayName', 'Right Delay (ms)', ...
-        'Style','hslider', ...
+    audioPluginParameter('time_R', ...
+        'Mapping',{'enum', '1/16T', '1/16D', '1/16', ...
+        '1/8T', '1/8D', '1/8', '1/4T', '1/4D', '1/4', ...
+        '1/2T', '1/2D', '1/2', '1/1'}, ...
+        'DisplayName', 'Right Delay ', ...
         'Layout',[5,2]), ...
      audioPluginParameter( ...
         'L_Feedback','Mapping',{'lin', 0, 1}, ...
@@ -67,11 +79,19 @@ classdef delay_plugin < audioPlugin
     audioPluginGridLayout( ...
         'RowHeight',[100,15,100,15,100,15,100,15,100], ...
         'ColumnWidth',[125,125,125,125,125,125], ...
-        'RowSpacing',10));
+        'RowSpacing',10), ...
+    audioPluginParameter('Tempo', ...
+            'Mapping',{'int',1,999}, ...
+            'Layout',[7,3], ...
+            'Style','vslider'));
 
   end
   
   methods    
+      
+    %-------------------------------------------------------------------
+    % Main
+    %-------------------------------------------------------------------  
     function out = process(plugin, in)
         fs = getSampleRate(plugin);
         dry = in; %use input to get wet/dry data for mixing
@@ -80,9 +100,70 @@ classdef delay_plugin < audioPlugin
             out = dry;
             return
         end
-
-        L_Delay_Samp = floor(fs*plugin.L_Delay/1000); %Convert to Samples from ms
-        R_Delay_Samp = floor(fs*plugin.R_Delay/1000);
+        switch plugin.time_L
+                case "1/16T"
+                    plugin.L_delay_ms = (((60000/plugin.Tempo)/4)*(2/3));
+                case "1/16D"
+                    plugin.L_delay_ms = ((60000/plugin.Tempo)/4)*(1.5);
+                case "1/16"  
+                    plugin.L_delay_ms = ((60000/plugin.Tempo)/4);
+                case "1/8T"
+                    plugin.L_delay_ms = ((60000/plugin.Tempo)/2)*(2/3);
+                case "1/8D"
+                    plugin.L_delay_ms = ((60000/plugin.Tempo)/2)*1.5;
+                case "1/8"    
+                    plugin.L_delay_ms = ((60000/plugin.Tempo)/2);
+                case "1/4T"
+                    plugin.L_delay_ms = ((60000/plugin.Tempo)*(2/3));
+                case "1/4D"
+                    plugin.L_delay_ms = (60000/plugin.Tempo)*(1.5);
+                case "1/4"  
+                    plugin.L_delay_ms = ((60000/plugin.Tempo));
+                case "1/2T"
+                    plugin.L_delay_ms = ((60000/plugin.Tempo)*2)*(2/3);
+                case "1/2D"
+                    plugin.L_delay_ms = ((60000/plugin.Tempo)*2)*1.5;
+                case "1/2"    
+                    plugin.L_delay_ms = ((60000/plugin.Tempo)*2);
+                case "1/1"  
+                    plugin.L_delay_ms = (60000/plugin.Tempo)*4;
+                otherwise
+                    plugin.L_delay_ms = 600;
+        end
+        
+        switch plugin.time_R
+                case "1/16T"
+                    plugin.R_delay_ms = (((60000/plugin.Tempo)/4)*(2/3));
+                case "1/16D"
+                    plugin.R_delay_ms = ((60000/plugin.Tempo)/4)*(1.5);
+                case "1/16"  
+                    plugin.R_delay_ms = ((60000/plugin.Tempo)/4);
+                case "1/8T"
+                    plugin.R_delay_ms = ((60000/plugin.Tempo)/2)*(2/3);
+                case "1/8D"
+                    plugin.R_delay_ms = ((60000/plugin.Tempo)/2)*1.5;
+                case "1/8"    
+                    plugin.R_delay_ms = ((60000/plugin.Tempo)/2);
+                case "1/4T"
+                    plugin.R_delay_ms = ((60000/plugin.Tempo)*(2/3));
+                case "1/4D"
+                    plugin.R_delay_ms = (60000/plugin.Tempo)*(1.5);
+                case "1/4"  
+                    plugin.R_delay_ms = ((60000/plugin.Tempo));
+                case "1/2T"
+                    plugin.R_delay_ms = ((60000/plugin.Tempo)*2)*(2/3);
+                case "1/2D"
+                    plugin.R_delay_ms = ((60000/plugin.Tempo)*2)*1.5;
+                case "1/2"    
+                    plugin.R_delay_ms = ((60000/plugin.Tempo)*2);
+                case "1/1"  
+                    plugin.R_delay_ms = (60000/plugin.Tempo)*4;
+                otherwise
+                    plugin.R_delay_ms = 600;
+        end
+        
+        L_Delay_Samp = floor(fs*plugin.L_delay_ms/1000); %Convert to Samples from ms
+        R_Delay_Samp = floor(fs*plugin.R_delay_ms/1000);
         out = in; %initialize out to same dimensions as input
         
         switch plugin.type
@@ -95,7 +176,6 @@ classdef delay_plugin < audioPlugin
                 if(readIndex <= 0) %Handle underflow of circular buffer
                     readIndex = readIndex + length(plugin.Buffer);
                 end
-                
                 for i = 1:length(in(:,1))
                     plugin.Buffer(writeIndex,1) = in(i,1);
                     delay = plugin.Buffer(readIndex,1);
