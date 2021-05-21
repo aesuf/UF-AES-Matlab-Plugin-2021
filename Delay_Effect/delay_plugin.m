@@ -3,14 +3,14 @@ classdef delay_plugin < audioPlugin
 
   properties
     bypass = 'Off'
-    mix = 1
-    type = 'basic'
+    mix = 0.5
+    type = 'Stereo'
     L_Gain = 1
     R_Gain = 1
     time_L = '1/4'
     time_R = '1/4'
-    L_Feedback = 0
-    R_Feedback = 0 
+    L_Feedback = 0.5
+    R_Feedback = 0.5 
     Tempo = 100
   end
   
@@ -41,7 +41,7 @@ classdef delay_plugin < audioPlugin
         'Style','rotary', ...
         'Layout',[1,2]), ...
     audioPluginParameter('type', ...
-        'Mapping',{'enum', 'basic', 'ping-pong'}, ...
+        'Mapping',{'enum', 'Stereo', 'ping-pong'}, ...
         'Layout',[1,3]), ...
     audioPluginParameter( ...
         'L_Gain','Mapping',{'pow', 1/3, -10, 6}, ...
@@ -81,9 +81,9 @@ classdef delay_plugin < audioPlugin
         'ColumnWidth',[125,125,125,125,125,125], ...
         'RowSpacing',10), ...
     audioPluginParameter('Tempo', ...
-            'Mapping',{'int',1,999}, ...
+            'Mapping',{'int',20,999}, ...
             'Layout',[7,3], ...
-            'Style','vslider'));
+            'Style','hslider'));
 
   end
   
@@ -167,7 +167,7 @@ classdef delay_plugin < audioPlugin
         out = in; %initialize out to same dimensions as input
         
         switch plugin.type
-            case "basic"
+            case "Stereo"
                 %Basic delay implementation, based on https://www.mathworks.com/help/audio/gs/audio-plugins-in-matlab.html
                 %Left Channel
                 writeIndex = plugin.L_Index;
