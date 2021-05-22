@@ -1,40 +1,44 @@
 %*********************************************************************
 % UF Audio Engineering Society Final Plugin Design
-% Team Members: Eric Barkuloo, Ryan Laur, Luke Jones, Sahil Patel, Daniel
-% Louis
-%
-%
-%
-%
-%
-%
+% 
+% Team Members: Eric Barkuloo, Ryan Laur, Luke Jones, 
+% Sahil Patel, Daniel Louis
+% 
+% 5/21/2021
 %
 
 classdef final_plugin < audioPlugin
 % delay plugin object
 
   properties
-    mix = 1
-    %saturation
+    mix = 0.5
+    %-----------------------------------------------------------------------
+    % Saturation GUI Properties
+    %-----------------------------------------------------------------------
     sat_type = 'hard'
     in_gain = 1
     dist_gain = 1
     threshold = 0.3
-    %delay
+    %-----------------------------------------------------------------------
+    % Delay GUI Properties
+    %-----------------------------------------------------------------------
     del_type = 'Stereo'
     L_Gain = 1
     R_Gain = 1
     time_L = '1/4'
     time_R = '1/4'
-    L_Feedback = 0.5
-    R_Feedback = 0.5 
+    L_Feedback = 0.25
+    R_Feedback = 0.25 
     Tempo = 100
   end
   
-  properties (Hidden)
+%-----------------------------------------------------------------------
+% Private Properties - Internal properties
+%-----------------------------------------------------------------------
+  properties (Access = private)
       L_delay_ms = 600;
       R_delay_ms = 600;
-      Buffer = zeros(192001,2) %Allows up to 4 seconds of delay at 48kHz
+      Buffer = zeros(192001,2) %Use maximum possible sampling frequency
       Out_Buffer = zeros(192001,2) 
       L_Index = 1;
       R_Index = 1;
@@ -55,12 +59,12 @@ classdef final_plugin < audioPlugin
         'DisplayName', 'Delay Type', ...
         'Layout',[7,2]), ...
     audioPluginParameter( ... %%%%%%%%%%%%***SATURATION PARAMETERS***
-        'in_gain','Mapping',{'pow', 1/3, -10, 6}, ...
+        'in_gain','Mapping',{'pow', 1/3, -10, 20}, ...
         'DisplayName', 'Saturation Input Gain (dB)', ...
         'Style','rotary', ...
         'Layout',[3,1]), ...
     audioPluginParameter( ...
-        'dist_gain','Mapping',{'pow', 1/3, -10, 10}, ...
+        'dist_gain','Mapping',{'pow', 1/3, -10, 20}, ...
         'DisplayName', 'Saturation Distortion Gain (dB)', ...
         'Style','rotary', ...
         'Layout',[5,1]), ...
@@ -119,7 +123,9 @@ classdef final_plugin < audioPlugin
         dry = in; %use input to get wet/dry data for mixing
         wet = in;
 
-        %Perform Saturation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-----------------------------------------------------------------------
+% Perform Saturation
+%-----------------------------------------------------------------------
         adj_in_gain = 10^(plugin.in_gain/10);
         adj_dist_gain = 10^(plugin.dist_gain/10);
         
@@ -164,7 +170,10 @@ classdef final_plugin < audioPlugin
             wet(:,2) = adj_in_gain*in(:,2) - adj_dist_gain*(1/3)*in(:,2).^3;
         end
                
-        %Perform Delay %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-----------------------------------------------------------------------
+% Perform Delay
+%-----------------------------------------------------------------------
+        %Convert input delay to ms for Left
         switch plugin.time_L
                 case "1/16T"
                     plugin.L_delay_ms = (((60000/plugin.Tempo)/4)*(2/3));
@@ -195,7 +204,7 @@ classdef final_plugin < audioPlugin
                 otherwise
                     plugin.L_delay_ms = 600;
         end
-        
+        %Convert input delay to ms for Right
         switch plugin.time_R
                 case "1/16T"
                     plugin.R_delay_ms = (((60000/plugin.Tempo)/4)*(2/3));
@@ -230,7 +239,7 @@ classdef final_plugin < audioPlugin
         L_Delay_Samp = floor(fs*plugin.L_delay_ms/1000); %Convert to Samples from ms
         R_Delay_Samp = floor(fs*plugin.R_delay_ms/1000);
         
-        in = wet;
+        in = wet;% use output of saturation(wet) as input to delay(in)
         switch plugin.del_type
             case "Stereo"
                 %Basic delay implementation, based on https://www.mathworks.com/help/audio/gs/audio-plugins-in-matlab.html
@@ -242,10 +251,13 @@ classdef final_plugin < audioPlugin
                     readIndex = readIndex + length(plugin.Buffer);
                 end
                 for i = 1:length(in(:,1))
+                    %Write to buffer with current input, read from in buffer
+                    %for delayed sample and read from out buffer for 
+                    %feedback sample. Combine and write to output buffer
+                    %for current output.
                     plugin.Buffer(writeIndex,1) = in(i,1);
                     delay = plugin.Buffer(readIndex,1);
                     feedback = plugin.Out_Buffer(readIndex,1);
-                    %out(i,1) = in(i,1) + 10^(plugin.L_Gain/10)*delay + plugin.L_Feedback*feedback;
                     wet(i,1) = 10^(plugin.L_Gain/10)*delay + plugin.L_Feedback*feedback;
                     dry(i,1) = in(i,1);
                     plugin.Out_Buffer(writeIndex,1) = wet(i,1)+dry(i,1);
@@ -270,6 +282,10 @@ classdef final_plugin < audioPlugin
                 end
                 
                 for i = 1:length(in(:,2))
+                    %Write to buffer with current input, read from in buffer
+                    %for delayed sample and read from out buffer for 
+                    %feedback sample. Combine and write to output buffer
+                    %for current output.
                     plugin.Buffer(writeIndex,2) = in(i,2);
                     delay = plugin.Buffer(readIndex,2);
                     feedback = plugin.Out_Buffer(readIndex,2);
@@ -291,7 +307,6 @@ classdef final_plugin < audioPlugin
                 
             case "ping-pong"
                 %Ping-pong delay implementation
-                out = in; %initialize out to same dimensions as input
                 %Left Channel
                 writeIndex = plugin.L_Index;
                 readIndex = writeIndex-L_Delay_Samp;
@@ -301,6 +316,10 @@ classdef final_plugin < audioPlugin
                 end
 
                 for i = 1:length(in(:,1))
+                    %Write to buffer with current input, read from in buffer
+                    %for delayed sample and read from LEFT out buffer for 
+                    %ping-pong feedback sample. Combine and write to output 
+                    %buffer for current output.
                     plugin.Buffer(writeIndex,1) = in(i,1);
                     delay = plugin.Buffer(readIndex,1);
                     feedback = plugin.Out_Buffer(readIndex,2);
@@ -328,6 +347,10 @@ classdef final_plugin < audioPlugin
                 end
 
                 for i = 1:length(in(:,2))
+                    %Write to buffer with current input, read from in buffer
+                    %for delayed sample and read from RIGHT out buffer for 
+                    %ping-pong feedback sample. Combine and write to output 
+                    %buffer for current output.
                     plugin.Buffer(writeIndex,2) = in(i,2);
                     delay = plugin.Buffer(readIndex,2);
                     feedback = plugin.Out_Buffer(readIndex,1);
@@ -347,6 +370,7 @@ classdef final_plugin < audioPlugin
                 end
                 plugin.R_Index = writeIndex;
         end
+        %Mix dry and wet into output
         out = (1-plugin.mix)*dry + (plugin.mix)*wet;
     end
   end
