@@ -95,7 +95,8 @@ classdef delay_plugin < audioPlugin
     function out = process(plugin, in)
         fs = getSampleRate(plugin);
         dry = in; %use input to get wet/dry data for mixing
-
+        wet = in;
+        
         if(strcmp(plugin.bypass,'On'))
             out = dry;
             return
@@ -180,8 +181,10 @@ classdef delay_plugin < audioPlugin
                     plugin.Buffer(writeIndex,1) = in(i,1);
                     delay = plugin.Buffer(readIndex,1);
                     feedback = plugin.Out_Buffer(readIndex,1);
-                    out(i,1) = (1-plugin.mix)*in(i,1) + plugin.mix*(10^(plugin.L_Gain/10)*delay + plugin.L_Feedback*feedback);
-                    plugin.Out_Buffer(writeIndex,1) = out(i,1);
+                    %out(i,1) = in(i,1) + 10^(plugin.L_Gain/10)*delay + plugin.L_Feedback*feedback;
+                    wet(i,1) = 10^(plugin.L_Gain/10)*delay + plugin.L_Feedback*feedback;
+                    dry(i,1) = in(i,1);
+                    plugin.Out_Buffer(writeIndex,1) = wet(i,1)+dry(i,1);
                     
                     writeIndex = writeIndex + 1; %Handle overflow of circular buffer
                     if(writeIndex > length(plugin.Buffer))
@@ -206,8 +209,10 @@ classdef delay_plugin < audioPlugin
                     plugin.Buffer(writeIndex,2) = in(i,2);
                     delay = plugin.Buffer(readIndex,2);
                     feedback = plugin.Out_Buffer(readIndex,2);
-                    out(i,2) = (1-plugin.mix)*in(i,2) + plugin.mix*(10^(plugin.R_Gain/10)*delay + plugin.R_Feedback*feedback);
-                    plugin.Out_Buffer(writeIndex,2) = out(i,2);
+                    %out(i,2) = (1-plugin.mix)*in(i,2) + 10^(plugin.R_Gain/10)*delay + plugin.R_Feedback*feedback;
+                    wet(i,2) = 10^(plugin.R_Gain/10)*delay + plugin.R_Feedback*feedback;
+                    dry(i,2) = in(i,2);
+                    plugin.Out_Buffer(writeIndex,2) = wet(i,2)+dry(i,2);
                     
                     writeIndex = writeIndex + 1; %Handle overflow of circular buffer
                     if(writeIndex > length(plugin.Buffer))
@@ -236,8 +241,10 @@ classdef delay_plugin < audioPlugin
                     plugin.Buffer(writeIndex,1) = in(i,1);
                     delay = plugin.Buffer(readIndex,1);
                     feedback = plugin.Out_Buffer(readIndex,2);
-                    out(i,1) = (1-plugin.mix)*in(i,1) + plugin.mix*(10^(plugin.L_Gain/10)*delay + plugin.L_Feedback*feedback);
-                    plugin.Out_Buffer(writeIndex,1) = out(i,1);
+                    %out(i,1) = (1-plugin.mix)*in(i,1) + plugin.mix*(10^(plugin.L_Gain/10)*delay + plugin.L_Feedback*feedback);
+                    wet(i,1) = 10^(plugin.L_Gain/10)*delay + plugin.L_Feedback*feedback;
+                    dry(i,1) = in(i,1);
+                    plugin.Out_Buffer(writeIndex,1) = wet(i,1)+dry(i,1);
 
                     writeIndex = writeIndex + 1; %Handle overflow of circular buffer
                     if(writeIndex > length(plugin.Buffer))
@@ -262,8 +269,10 @@ classdef delay_plugin < audioPlugin
                     plugin.Buffer(writeIndex,2) = in(i,2);
                     delay = plugin.Buffer(readIndex,2);
                     feedback = plugin.Out_Buffer(readIndex,1);
-                    out(i,2) = (1-plugin.mix)*in(i,2) + plugin.mix*(10^(plugin.R_Gain/10)*delay + plugin.R_Feedback*feedback);
-                    plugin.Out_Buffer(writeIndex,2) = out(i,2);
+                    %out(i,2) = (1-plugin.mix)*in(i,2) + plugin.mix*(10^(plugin.R_Gain/10)*delay + plugin.R_Feedback*feedback);
+                    wet(i,2) = 10^(plugin.R_Gain/10)*delay + plugin.R_Feedback*feedback;
+                    dry(i,2) = in(i,2);
+                    plugin.Out_Buffer(writeIndex,2) = wet(i,2)+dry(i,2);
 
                     writeIndex = writeIndex + 1; %Handle overflow of circular buffer
                     if(writeIndex > length(plugin.Buffer))
@@ -277,6 +286,7 @@ classdef delay_plugin < audioPlugin
                 end
                 plugin.R_Index = writeIndex;
         end
+        out = (1-plugin.mix)*dry + (plugin.mix)*wet;
     end
   end
 end
